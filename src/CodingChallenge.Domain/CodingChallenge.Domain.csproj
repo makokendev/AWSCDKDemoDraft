@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <!-- <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles> -->
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- <PackageReference Include="CodingChallenge.Domain" Version="0.4.3" /> -->
+  </ItemGroup>
+</Project>

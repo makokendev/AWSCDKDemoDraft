@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="10.0.1"/>
+		<PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.5"/>
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.5"/>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.5"/>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.5"/>
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\CodingChallenge.Application\CodingChallenge.Application.csproj"/>
+	</ItemGroup>
+</Project>

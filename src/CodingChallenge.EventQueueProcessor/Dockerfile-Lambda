@@ -1,0 +1,8 @@
+# Build runtime image
+FROM public.ecr.aws/lambda/dotnet:6
+EXPOSE 5000
+EXPOSE 5001
+EXPOSE 80
+COPY ./ ${LAMBDA_TASK_ROOT}
+RUN ls -la ${LAMBDA_TASK_ROOT}/*
+CMD ["CodingChallenge.EventQueueProcessor::CodingChallenge.EventQueueProcessor.EventQueueLambdaClass::HandleAsync"]

@@ -1,0 +1,92 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Read File",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--read-file","/Users/makoken/Github/makokendev/coding-challenge-application/transactions.json"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+        {
+            "name": "Read Inline",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--read-inline","{\"Type\":\"Mint\",\"TokenId\":\"0xD000000000000000000000000000000000000000\",\"Address\":\"0x1000000000000000000000000000000000000000\"}"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+        {
+            "name": "Read Inline (Multiple)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--read-inline","[{\"Type\":\"Mint\",\"TokenId\":\"0x8000000000000000000000000000000000000000\",\"Address\":\"0x1000000000000000000000000000000000000000\"},{\"Type\":\"Mint\",\"TokenId\":\"0x9000000000000000000000000000000000000000\",\"Address\":\"0x1000000000000000000000000000000000000000\"}]"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+        {
+            "name": "WALLET",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--wallet","0x3000000000000000000000000000000000000000"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+        {
+            "name": "TOKEN",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--nft","0xB000000000000000000000000000000000000000"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+        {
+            "name": "RESET",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/CodingChallenge.Console/bin/Debug/net6.0/CodingChallenge.Console.dll",
+            "args": ["--reset"],
+            "cwd": "${workspaceFolder}/src/CodingChallenge.Console",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "env": {
+                "UseInMemoryDatabase" : "false"
+            }
+        },
+    ]
+}
