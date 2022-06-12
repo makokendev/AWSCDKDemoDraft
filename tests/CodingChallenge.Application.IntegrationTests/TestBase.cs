@@ -28,8 +28,9 @@ public class TestBase
 
     protected virtual void ConfigureServices(IServiceCollection services)
     {
+        var debugLogger = new Microsoft.Extensions.Logging.Debug.DebugLoggerProvider().CreateLogger("testbase");
         services.AddApplicationBaseDependencies();
-        services.AddInfrastructureDependencies(Configuration);
+        services.AddInfrastructureDependencies(Configuration,debugLogger);
         services.AddSingleton<ILogger>(Logger);
         //services.AddTransient<NFTCommandController, NFTCommandController>();
         //services.AddTransient<NFTConsoleRunner, NFTConsoleRunner>();
