@@ -30,6 +30,7 @@ public class NFTRecordLambdaRunner
         }
         if (listOfCommands.Any())
         {
+            _logger.LogInformation($"There are {listOfCommands.Count} transaction(s). Processing command list");
             var listOfCommandResponses = await _nftRecordCommandHandler.ProcessCommandListAsync(listOfCommands);
             _logger.LogInformation($"Read {listOfCommands.Count} transaction(s)");
             foreach (var response in listOfCommandResponses)

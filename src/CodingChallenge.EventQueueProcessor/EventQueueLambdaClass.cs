@@ -1,4 +1,3 @@
-using System.Reflection;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using CodingChallenge.Application;
@@ -16,6 +15,8 @@ public class EventQueueLambdaClass
     public IConfiguration configuration;
     public IServiceProvider serviceProvider;
 
+    public AWSAppProject awsApplication;
+
     public EventQueueLambdaClass()
     {
         LoadConfiguration();
@@ -27,12 +28,16 @@ public class EventQueueLambdaClass
     {
         configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables().Build();
+        awsApplication = new AWSAppProject();
+        configuration.GetSection(Constants.APPLICATION_ENVIRONMENT_VAR_PREFIX).Bind(awsApplication);
     }
     protected virtual void ConfigureServices(IServiceCollection services)
     {
         services.AddApplicationBaseDependencies();
-        services.AddInfrastructureDependencies(configuration);
+        services.AddInfrastructureDependencies(configuration,logger);
         services.AddSingleton<ILogger>(logger);
+        services.AddSingleton<AWSAppProject>(awsApplication);
+
         services.AddTransient<NFTRecordCommandController, NFTRecordCommandController>();
         services.AddTransient<NFTRecordLambdaRunner, NFTRecordLambdaRunner>();
         serviceProvider = services.BuildServiceProvider();
@@ -43,7 +48,9 @@ public class EventQueueLambdaClass
     {
         logger = new CustomLambdaLoggerProvider(new CustomLambdaLoggerConfig()
         {
-            LogLevel = LogLevel.Information
+            LogLevel = LogLevel.Debug,
+            InfrastructureProject = awsApplication
+
         }).CreateLogger(nameof(EventQueueLambdaClass));
     }
 
@@ -56,17 +63,21 @@ public class EventQueueLambdaClass
             return;
         }
         var runner = serviceProvider.GetService<NFTRecordLambdaRunner>();
+
         foreach (var record in sQSEvent.Records)
         {
             try
             {
-                logger.LogDebug($"log debug {record.Body}");
+                logger.LogInformation($"log debug {record.Body}");
                 await runner.HandleInlineJsonOptionAsync(record.Body);
 
             }
+
             catch (Exception ex)
             {
-                logger.LogInformation($"error processing queue... Message: {ex.Message}. StackTrace {ex.StackTrace}");
+                logger.LogInformation($"error processing queue... Message: {ex.Message}. StackTrace {ex.StackTrace}. exception type -> {ex.GetType()}");
+                logger.LogInformation($"inner exception error processing queue... Message: {ex.InnerException?.Message}. StackTrace {ex.InnerException?.StackTrace}");
+                throw;
             }
         }
     }
