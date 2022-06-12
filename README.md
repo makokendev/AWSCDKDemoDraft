@@ -1,129 +1,76 @@
-# *WARNING - DRAFT VERSION*
+# Coding Challenge - SERVERLESS 
 
-> Solution is based on the [Block Chain Event Stream Processor Coding Challenge Repository](https://github.com/makokendev/BlockChainEventStreamProcessorCodingChallenge)
+Main goal of this project is to demonstrate how a .NET solution can contain all the code that is needed to define, build & deploy a Serverless Application hosted on AWS. 
 
-> **WARNING:_**  This repository is created the showcase AWS CDK however, it is still is in progress. This draft version is only included to provide a sneak peak at the AWS CDK setup + added Cake Build Tasks.
+The overall architecture is shown in the [Overview diagram](http://awscdkdemo.makoken.com/docs/overview.html). 
 
+## Highlights
+* This project is based on the Coding Challange project detailed in the [BlockChain Event Stream Processor Coding Challenge](https://github.com/makokendev/BlockChainEventStreamProcessorCodingChallenge) github repository.
 
+* [AWS CDK](https://aws.amazon.com/cdk/) framework & [CloudFormation](https://aws.amazon.com/cloudformation/) is used as the Infrastructure as Code (IaC) tool to be able to create relevant infrastructure on AWS.
 
----
----
----
----
----
----
----
+* [Cake Buid](https://cakebuild.net/) is used as the build automation system. 
 
-# Coding Challenge 
+* [Github actions](https://github.com/features/actions) is used for CICD. 
 
-This application is created to address the task described in the [Coding Challenge document](CodingChallenge.pdf).
+* [AWS](https://aws.amazon.com/) is the cloud platform where the solution is realised. 
+  * Cloud Native (serverless) components are used such a [SNS](https://aws.amazon.com/sns/), [SQS](https://aws.amazon.com/sns/), [DynamoDB](https://aws.amazon.com/dynamodb/), [API Gateway](https://aws.amazon.com/api-gateway/).
 
-The task is the following:
-> Write a console app in C# that receives some subset of 
-transactions, and processes them in such a way that enables the program to 
-answer questions about NFT ownership.
-Your program must execute only a single command each time it is run, and 
-must persist state between runs.
+### Cake Build/Frosting
 
-[Coding Challenge document](CodingChallenge.pdf) contains message specifications and commands that the console application must work with.
+[Build Project](https://github.com/makokendev/AWSCDKDemoDraft/tree/master/build) includes set of tasks and utilities to enable build and deploy pipelines. The tasks are designed to be generic and driven by [Project Settings](https://github.com/makokendev/AWSCDKDemoDraft/blob/master/build/Tasks/SetupTask.cs). Dedicated Nuget packages can be created to include all the generic tasks and utilities so that multiple projects can leverage the basic tools and can focus on the configuration bit.
 
+#### Build
+* In this particular cake build project, the purpose of the build pipeline is to produce artifacts which can be deployed to desired platform e.g. AWS.
+* The buid pipeline makes sure:
+  * A version is determined for the specific version of the code based on git tags & commits
+  * Dotnet code is built and all the tests passes.
+  * A docker image is created and pushed to private Docker Registry (ECR).
+  * "./build/build.sh --target=build" command triggers the build pipeline.
 
----
+#### Deploy
+* In this particular cake build project, the purpose of the deploy pipeline is to create relevant serverless infrastructure using CF if they do not exist and create/update lambda function(s) with the latest corresponding docker images. 
+* This pipeline is created with the Continuous Deployment in mind. For Continuous Delivery, a separate deployment artifact can be generated.
+* "./build/build.sh --target=deploy" command triggers the deploy pipeline.
 
-## How to build & run the program?
+### AWS CDK
 
-Make sure that [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) is installed on the computer. 
-
-```
-# Linux & MacOS users
-./build/build.sh
-
-# Windows users, please run build.ps1
-./build/build.ps1
-
-# build script triggers Cake (Frosting) tasks/pipeline. 
-# The pipeline will build, (unit&integration) test, publish and run the program with [predefined commands](./build/Tasks/RunConsoleAppCommandsTask.cs). 
+* This solution contains a single cdk project which contains definitions for three stacks. The stacks can also be defined in separate projects but this setup is chosen to showcase the multi-stack support capability.
+* Infra Stack must be deployed first. 
+* Database Stack is deployed after infra stack. 
+* Main/Application Stack is deployed last as it has dependencies on the Infra & Database stacks.
 
 ```
+# infra stack
+./build/build.sh --target=infradeploy
+# database stack
+./build/build.sh --target=databasedeploy
+# main/application stack
+./build/build.sh --target=deploy
 
-Build Pipeline publishes CodingChallenge.Console project (entry point for the program) to the "./publish" folder. 
-
-Following command will display help screen that shows available commands.
-```
-dotnet ./publish/CodingChallenge.Console/CodingChallenge.Console.dll --help
-
-# command response is shown below.
-CodingChallenge.Console 1.0.0
-Copyright (C) 2022 CodingChallenge.Console
-
-  -i, --read-inline    Reads either a single json element, or an array of json elements representing transactions as an argument.
-
-  -f, --read-file      Reads either a single json element, or an array of json elements representing transactions from the file in the specified location.
-
-  -n, --nft            Returns ownership information for the nft with the given id.
-
-  -w, --wallet         Lists all NFTs currently owned by the wallet of the given address.
-
-  -r, --reset          Deletes all data previously processed by the program.
-
-  --help               Display this help screen.
-
-  --version            Display version information.
 ```
 
-[Github actions](https://github.com/makokendev/BlockChainEventStreamProcessorCodingChallenge/actions) contains a sample Github Workflow run to demonstrate how the build pipeline output looks like. 
+#### Infra Stack
 
-### Build Badge
-[![Coding Challenge Build Pipeline](https://github.com/makokendev/BlockChainEventStreamProcessorCodingChallenge/actions/workflows/cakebuild.yml/badge.svg?branch=master)](https://github.com/makokendev/BlockChainEventStreamProcessorCodingChallenge/actions/workflows/cakebuild.yml)
+* Infra Stack's purpose is to create AWS resources that are used platform-wide such as ECR Repo, SNS Event Topic and S3 Bucket for storing documentation.
 
----
+#### Database Stack
 
-## Solution
+* It is a good practice to separate stacks for database and main application when working with CloudFormation as they usually have different lifecycles. We don't always want to rollback a database configuration when rollbacking an application version. 
 
-### Main Folders
-This repository consists of 4 main parts: 
-* build folder - Build Pipeline
-  * Contains Cake Frosting project to create a build pipeline. Next to the build pipeline, an extra task is included to run commands on the console app as a way to demonstrate basic capability of the program.
-* src folder - Source Code
-  * Contains code libraries that make up the console application. 
-  * CodingChallenge.Console project is the Console Application. 
-* tests folder - Unit & Integration Tests
-  * Contains libraries for conducting unit and integration tests.
-* utils
-  * Contains bash script file that contains commands to execute console application.
+#### Main Stack
 
-### Github and VSCode folders
+* Main stack can also be called the Application stack as it contains specific resource definitions for an application. In this case, the application consists of a SQS FIFO Queue, Event/Queue Processor Lambda and Api Gateway instance. 
+* Most of the changes typically occur in the Main/Application stack as new commands, queries, business rules etc are added to the application logic. 
 
-.github and .vscode folders contains files related to GitHub and VS Code. These folders are not required for building or running the application. 
-* cakebuild.yml under .github is a github workflow contains a call to build.sh script which provides a nice demo on how cake build operates and how the output looks like
-* launch.json under .vscode provides settings for debugging the console application using VSCode. It provides a nice basis for VSCode users.
+## Interaction
 
-## Architecture
-* Jason Taylor's [Clean Architecture](https://github.com/jasontaylordev/CleanArchitecture) solution template is used only as a base for the solution. Please visit the github repository to get more details on Clean Architecture and his solution template setup.
-* Such solution template is useful to speed up development process and set a baseline for development teams. James Taylor provides a lot of documentation & videos on Clean Architecture which is great for onboarding new team members.
-
-
-## Important tools and libraries
-
-* [Cake Build and Code Frosting](https://cakebuild.net/docs/running-builds/runners/cake-frosting)
-    * Used for creating the build pipeline. Similar setup can be used for setting up Continuous Integration and Deployments.
-* [XUnit](https://xunit.net/) library is used for unit & integration tests. 
-* [SQLite](https://www.sqlite.org/index.html) data base used as the database along with [SQLite EF Core Database Provider](https://docs.microsoft.com/en-us/ef/core/providers/sqlite/?tabs=dotnet-core-cli)
-    * SQLite is a great self-contained database which is great for self-contained application such as this one.    
-* [Fluent Validations](https://docs.fluentvalidation.net/en/latest/) is a great flexible, extendible validation library.
-* [CommandLine](https://github.com/commandlineparser/commandline) is a great library to easily parse command line arguments. 
-
-# Quick next steps that can be taken
-
-* Integrate sonarqube -> https://docs.sonarqube.org/latest/
-  * For ensuring and improving code quality and code quality
-* Introduce webapi and generate docker image (generic and for lambda)
-* Create Api Gateway and Lambda using CDK to host the web api
-
-### Sample Input / Output
-
-[samplecommands.sh](./utils/samplecommands.sh) file in utils folder provides set of sample commands. By default, this file targets the published application under "publish/CodingChallenge.Console" folder. 
-
+### Send Transaction (Publish Transaction Event)
+curl --location --request GET 'https://awscdkapi.makoken.com/topic?message=%7B%22Type%22%3A%22Mint%22%2C%22TokenId%22%3A%220xD000000000000000000000000000000000000000%22%2C%22Address%22%3A%220x2000000000000000000000000000000000000000%22%7D'
+### Get tokens from a wallet
+curl --location --request GET 'https://awscdkapi.makoken.com/wallet?walletid=0x1000000000000000000000000000000000000000'
+### Get token by tokenid
+curl --location --request GET 'https://awscdkapi.makoken.com/token?id=0xE000000000000000000000000000000000000000'
 ## Contact 
 
 Please write to makoken@gmail.com for any remarks and questions.
