@@ -66,11 +66,17 @@ The overall architecture is shown in the [Overview diagram](http://awscdkdemo.ma
 ## Interaction
 
 ### Send Transaction (Publish Transaction Event)
+```
 curl --location --request GET 'https://awscdkapi.makoken.com/topic?message=%7B%22Type%22%3A%22Mint%22%2C%22TokenId%22%3A%220xD000000000000000000000000000000000000000%22%2C%22Address%22%3A%220x2000000000000000000000000000000000000000%22%7D'
+```
 ### Get tokens from a wallet
+```
 curl --location --request GET 'https://awscdkapi.makoken.com/wallet?walletid=0x1000000000000000000000000000000000000000'
+```
 ### Get token by tokenid
+```
 curl --location --request GET 'https://awscdkapi.makoken.com/token?id=0xE000000000000000000000000000000000000000'
+```
 ## Contact 
 
 Please write to makoken@gmail.com for any remarks and questions.
