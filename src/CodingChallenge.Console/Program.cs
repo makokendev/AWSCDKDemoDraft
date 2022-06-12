@@ -33,7 +33,7 @@ partial class Program
     static void ConfigureServices(IServiceCollection services)
     {
         services.AddApplicationBaseDependencies();
-        services.AddInfrastructureDependencies(configuration);
+        services.AddInfrastructureDependencies(configuration,logger);
         services.AddSingleton<ILogger>(logger);
         services.AddTransient<NFTRecordCommandController, NFTRecordCommandController>();
         services.AddTransient<NFTRecordConsoleRunner, NFTRecordConsoleRunner>();
