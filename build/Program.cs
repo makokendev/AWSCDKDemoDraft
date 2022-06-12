@@ -2,7 +2,7 @@ using Cake.Frosting;
 using CodingChallenge.CakeBuild;
 using CodingChallenge.CakeBuild.Models;
 using CodingChallenge.CakeBuild.Tasks;
-using CodingChallenge.Cdk;
+using CodingChallenge.Infrastructure;
 
 public static class Extensions
 {
@@ -12,9 +12,9 @@ public static class Extensions
             InstallTool(new System.Uri("dotnet:?package=GitVersion.Tool&version=5.8.1"))
             .InstallTool(new System.Uri("nuget:?package=nuget.commandline&version=5.3.0"));
     }
-    public static AwsAppProject ToAwsApplication(this MetaData metadata)
+    public static AWSAppProject ToAwsApplication(this MetaData metadata)
     {
-        return new AwsAppProject()
+        return new AWSAppProject()
         {
             Version = metadata.Version,
             System = metadata.System,
@@ -60,10 +60,22 @@ public class DotnetBuildTask : FrostingTask
 public class DefaultTask : FrostingTask
 {
 }
+[TaskName("doc")]
+[IsDependentOn(typeof(UploadDocumentationToStorage))]
+
+public class DocTask : FrostingTask
+{
+}
 [TaskName("InfraDeploy")]
 [IsDependentOn(typeof(DotnetBuildTask))]
 [IsDependentOn(typeof(CdkInfraStackDeployTask))]
 public class InfraStackDeployTask : FrostingTask
+{
+}
+[TaskName("DatabaseDeploy")]
+[IsDependentOn(typeof(DotnetBuildTask))]
+[IsDependentOn(typeof(CdkDatabaseStackDeployTask))]
+public class DatabaseStackDeployTask : FrostingTask
 {
 }
 [TaskName("Deploy")]
@@ -74,10 +86,10 @@ public class InfraStackDeployTask : FrostingTask
 public class MainStackDeployTask : FrostingTask
 {
 }
-[TaskName("Docker")]
+[TaskName("Build")]
 [IsDependentOn(typeof(DotnetBuildTask))]
 [IsDependentOn(typeof(DockerBuildTask))]
 [IsDependentOn(typeof(DockerEcrPushTask))]
-public class DockerTask : FrostingTask
+public class BuildTask : FrostingTask
 {
 }

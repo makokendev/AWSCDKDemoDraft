@@ -1,9 +1,8 @@
-using System;
 using Cake.Common;
 using Cake.Frosting;
 using CodingChallenge.CakeBuild.Models;
-using CodingChallenge.Cdk;
 using CodingChallenge.Cdk.Stacks;
+using CodingChallenge.Infrastructure;
 
 namespace CodingChallenge.CakeBuild.Tasks;
 [TaskName("Setup-Task")]
@@ -34,7 +33,7 @@ public sealed class SetupTask : FrostingTask<BuildContext>
                     AwsAccountNumber =awsAccountNumber,
                     AwsRegion = awsRegion,
                     DockerFileName = "Dockerfile-Lambda",
-                    DockerRepoNameSuffix = MainStack.EcrRepoSuffix,
+                    DockerRepoNameSuffix = InfraStack.EcrRepoSuffix,
                     RunDockerBuild= true,
                     RunDockerPush = true
                 }

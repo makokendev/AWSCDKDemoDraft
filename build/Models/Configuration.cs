@@ -6,6 +6,7 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Yaml;
 using CodingChallenge.Cdk;
+using CodingChallenge.Infrastructure;
 using Microsoft.Extensions.Configuration;
 
 namespace CodingChallenge.CakeBuild.Models;
@@ -31,7 +32,7 @@ public class Settings
 
     public MetaData metadata { get; private set; }
 
-    public AwsAppProject AwsApplication;
+    public AWSAppProject AwsApplication;
 
     private void SetMetadataProperties(ICakeContext cakeContext)
     {
@@ -48,13 +49,13 @@ public class Settings
     }
     private void SetAwsAppProject(ICakeContext cakeContext)
     {
-        AwsApplication = new AwsAppProject();
+        AwsApplication = new AWSAppProject();
         var configuration = new ConfigurationBuilder()
            .AddEnvironmentVariables().Build();
         configuration.GetSection(Constants.APPLICATION_ENVIRONMENT_VAR_PREFIX).Bind(AwsApplication);
 
         var autoMapperConfig = new MapperConfiguration(
-            cfg => cfg.CreateMap<MetaData, AwsAppProject>().
+            cfg => cfg.CreateMap<MetaData, AWSAppProject>().
                 ForAllMembers(opt => opt.Condition((src, dest, sourceMember) => !string.IsNullOrWhiteSpace((string)sourceMember)))
             );
         var autoMapper = autoMapperConfig.CreateMapper();

@@ -1,8 +1,7 @@
 using System.Linq;
 using Cake.Docker;
 using Cake.Frosting;
-using CodingChallenge.Cdk;
-using CodingChallenge.Cdk.Extensions;
+using CodingChallenge.Infrastructure.Extensions;
 
 namespace CodingChallenge.CakeBuild.Tasks;
 
