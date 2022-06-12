@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Amazon.CDK.AWS.SAM;
 using Amazon.CDK.AWS.SQS;
+using CodingChallenge.Infrastructure;
+using CodingChallenge.Infrastructure.Extensions;
 using static Amazon.CDK.AWS.SAM.CfnFunction;
 
 namespace CodingChallenge.Cdk.Extensions;
@@ -29,7 +31,7 @@ public static class CfnFunctionRelatedExtensions
             }
         };
     }
-    public static CfnFunctionProps GetLambdaContainerBaseProps(this LamdaFunctionCdkSettings functionCdkSettings, AwsAppProject awsApplication)
+    public static CfnFunctionProps GetLambdaContainerBaseProps(this LamdaFunctionCdkSettings functionCdkSettings, AWSAppProject awsApplication)
     {
         var functionName = awsApplication.GetResourceName(functionCdkSettings.FunctionNameSuffix);
         if (functionName.Length > 63)

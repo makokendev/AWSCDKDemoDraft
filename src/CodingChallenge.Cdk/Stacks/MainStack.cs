@@ -2,145 +2,141 @@ using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.IAM;
-using Amazon.CDK.AWS.SAM;
 using Amazon.CDK.AWS.SNS;
-using Amazon.CDK.AWS.SNS.Subscriptions;
-using Amazon.CDK.AWS.SQS;
 using CodingChallenge.Cdk.Extensions;
-using static Amazon.CDK.AWS.SAM.CfnFunction;
+using CodingChallenge.Infrastructure;
+using CodingChallenge.Infrastructure.Extensions;
+using static Amazon.CDK.AWS.APIGateway.CfnDomainName;
 
 namespace CodingChallenge.Cdk.Stacks;
 
 public sealed partial class MainStack : Stack
 {
-    public const string EcrRepoSuffix = "ecrrepo";
-    public MainStack(Construct parent, string id, IStackProps props, AwsAppProject awsApplication) : base(parent, id, props)
+    public MainStack(Construct parent, string id, IStackProps props, AWSAppProject awsApplication) : base(parent, id, props)
     {
-        var eventProcessorLambdaRoleSuffix = "lambdarole";
+        if (string.IsNullOrWhiteSpace(awsApplication.AwsRegion))
+        {
+            awsApplication.AwsRegion = this.Region;
+        }
 
+        ITopic eventTopic = GetTopicReference(awsApplication);
+        SetupEventProcessor(awsApplication, eventTopic);
+        SetupApiGateway(awsApplication, eventTopic);
+    }
+
+    private ITopic GetTopicReference(AWSAppProject awsApplication)
+    {
         var topicName = awsApplication.GetResourceName("blockChainEventTopic");
         var eventTopic = Topic.FromTopicArn(this, awsApplication.GetResourceName("blockChainEventTopic"), awsApplication.GetCfOutput($"{InfraStack.eventTopicSuffix}-{InfraStack.arnSuffixValue}"));
-        SetupApigatewayToSns(awsApplication, eventTopic);
-        var eventQueueStack = SetupEventTransactionQueue(awsApplication, eventTopic);
-        var eventProcessorLambdaRole = new LambdaRoleNestedStack(this, awsApplication.GetResourceName($"{eventProcessorLambdaRoleSuffix}-stack"), new NestedStackProps(), awsApplication, eventProcessorLambdaRoleSuffix);
-        SetupEventProcessorLambdaFunction(eventProcessorLambdaRole.RoleObj.RoleArn, awsApplication, eventTopic,eventQueueStack.QueueObj);
+        return eventTopic;
     }
 
-    private QueueNestedStack SetupEventTransactionQueue(AwsAppProject awsApplication, ITopic eventTopic)
+    private void SetupEventProcessor(AWSAppProject awsApplication, ITopic eventTopic)
     {
-        var blockChainEventQueueNameSuffix = "eventqueue";
-        var blockChainEventQueueStackName = awsApplication.GetResourceName($"{blockChainEventQueueNameSuffix}-stack");
-        var eventQueueStack = new QueueNestedStack(this, blockChainEventQueueStackName, new NestedStackProps(), awsApplication, blockChainEventQueueNameSuffix, isFifo: true, 10);
-        eventTopic.AddSubscription(new SqsSubscription(eventQueueStack.QueueObj, new SqsSubscriptionProps()
+        var eventProcessorLambdaRoleSuffix = "lambdarole";
+        var eventProcessorLambdaRole = GetLambdaRole(awsApplication, $"{eventProcessorLambdaRoleSuffix}");
+        new EventProcessorNestedStack(this, "eventprocessor", new NestedStackProps(), awsApplication, eventProcessorLambdaRole.RoleArn, eventTopic.TopicArn);
+    }
+
+    private void SetupApiGateway(AWSAppProject awsApplication, ITopic eventTopic)
+    {
+        var apiGw = GetApiGateway(awsApplication);
+        var apiGwRole = GetApiGatewayRole(awsApplication, "apigatewayrole");
+        
+        //this function has to be run after api gw is created. CloudFormation is not always straight-forward.
+        //uncomment after api gw is created.
+        //SetCustomDomainForApiGateway(awsApplication,apiGw);
+        new ApiGatewayNestedStack(this, "ApiGateway", new NestedStackProps(), awsApplication, eventTopic.TopicArn, apiGw.RestApiId, apiGw.Root.ResourceId, apiGwRole.RoleArn);
+    }
+    private void SetCustomDomainForApiGateway(AWSAppProject awsApplication,RestApi restapi)
+    {
+        var domainNameObj = new Amazon.CDK.AWS.APIGateway.CfnDomainName(this, awsApplication.GetResourceName($"{restapi.RestApiName}-domainname"), new CfnDomainNameProps()
         {
-            RawMessageDelivery = true,
-            // FilterPolicy = new Dictionary<string, SubscriptionFilter>(){
-            //         {"EventName", SubscriptionFilter.StringFilter(new StringConditions(){
-            //             MatchPrefixes = new string[]{"Transaction."}
-            //         })
-            //         }
-            //     }
-        }));
-        return eventQueueStack;
-    }
-
-    private string GetDockerImageUri(AwsAppProject awsApplication)
-    {
-        var dockerImageName = awsApplication.GetCfOutput($"{InfraStack.EcrRepoSuffix}-name");
-        var dockerImageEcrDomain = $"{this.Account}.dkr.ecr.{this.Region}.amazonaws.com";
-        return $"{dockerImageEcrDomain}/{dockerImageName}:{awsApplication.Version}";
-    }
-
-    private CfnFunction SetupEventProcessorLambdaFunction(string roleArn, AwsAppProject awsApplication, ITopic topic, Queue eventQueue)
-    {
-        var repoUri = GetDockerImageUri(awsApplication);
-
-        const string functionSuffix = "event-processor-lambda-func";
-
-        var baseSettings = new LamdaFunctionCdkSettings
+            //Certificate = certificate,
+            RegionalCertificateArn = awsApplication.CertificateArn,
+            DomainName = $"awscdkapi.{awsApplication.DomainName}",
+            EndpointConfiguration = new EndpointConfigurationProperty()
+            {
+                Types = new string[] { "REGIONAL" }
+            }
+        });
+        var basePathMapping = new CfnBasePathMapping(this, awsApplication.GetResourceName($"{restapi.RestApiName}-basemappings"), new CfnBasePathMappingProps()
         {
-            FunctionNameSuffix = functionSuffix.ToLower(),
-            Memory = 512,
-            ReservedConcurrentExecutions = 2,
-            Timeout = 30,
-            RoleArn = roleArn,
-            ImageUri = repoUri,
-            Architectures = new string[] { Amazon.CDK.AWS.Lambda.Architecture.ARM_64.Name }
-        };
-        var lambdaProp = baseSettings.GetLambdaContainerBaseProps(awsApplication);
-       
-        ((lambdaProp.Environment as FunctionEnvironmentProperty).Variables as Dictionary<string, string>).Add($"SNSTopicConfiguration__TopicRegion", "us-east-1");
-        ((lambdaProp.Environment as FunctionEnvironmentProperty).Variables as Dictionary<string, string>).Add($"SNSTopicConfiguration__TopicArn", topic.TopicArn);
-        lambdaProp.AddEventSourceProperty(eventQueue.GetQueueEventSourceProperty(10, true), "eventKey");
-
-        return new Amazon.CDK.AWS.SAM.CfnFunction(this, lambdaProp.FunctionName, lambdaProp);
-
+            DomainName = domainNameObj.DomainName,
+            RestApiId = restapi.RestApiId,
+            Stage = awsApplication.Environment
+        });
+        basePathMapping.AddDependsOn(domainNameObj);
     }
 
-
-    public Role GetApiGatewayRole(AwsAppProject cdkApp, string namesuffix) =>
-        cdkApp.GetAPIGatewayRole(this, namesuffix)
-        .AddCodeBuildReportGroupPolicy(cdkApp)
-        .AddCloudWatchLogsPolicy(cdkApp)
-        .AddCloudWatchLogGroupPolicy(cdkApp)
-        .AddDynamoDBPolicy(cdkApp)
-        .AddSnsPolicy(cdkApp)
-        .AddSqsPolicy(cdkApp)
-        .AddS3Policy(cdkApp)
-        .AddSsmPolicy(cdkApp);
-
-    public void SetupApigatewayToSns(AwsAppProject awsApplication, ITopic eventTopic)
+    private RestApi GetApiGateway(AWSAppProject awsApplication)
     {
+
         var restApiName = awsApplication.GetResourceName("ingest");
         var api = new RestApi(this, restApiName, new RestApiProps
         {
             DeployOptions = new StageOptions()
             {
-                StageName = "run",
+                StageName =awsApplication.Environment,
                 TracingEnabled = true,
             },
         });
 
-        awsApplication.SetCfOutput(this, "apigwbase", api.Url);
-
-        var topic = api.Root.AddResource("topic");
-        var awsIntegration = new AwsIntegration(new AwsIntegrationProps
+        var mockedResource = api.Root.AddResource("version", new ResourceOptions
         {
-            Service = "sns",
-            Path = $"{this.Account}/{eventTopic.TopicName}",
-            IntegrationHttpMethod = "POST",
-            Options = new IntegrationOptions()
+            DefaultCorsPreflightOptions = new CorsOptions
             {
-                CredentialsRole = GetApiGatewayRole(awsApplication, "apigatewayrole"),
-                PassthroughBehavior = PassthroughBehavior.NEVER,
-                RequestParameters = new Dictionary<string, string>
-                  {
-                      {"integration.request.header.Content-Type", "'application/x-www-form-urlencoded'"}
-                  },
-                RequestTemplates = new Dictionary<string, string>
+                AllowOrigins = new string[] { "*" },
+                AllowCredentials = true
+            }
+        });
+
+        mockedResource.AddMethod("GET", new MockIntegration(new IntegrationOptions()
+        {
+            PassthroughBehavior = PassthroughBehavior.WHEN_NO_TEMPLATES,
+            RequestTemplates = new Dictionary<string, string>
                     {
-                  {"application/json", $"TopicArn={eventTopic.TopicArn}&MessageGroupId=uniqueid&Action=Publish&Message=$util.urlEncode(\"$method.request.querystring.message\")"}
-                    },
-                IntegrationResponses = new IntegrationResponse[]{
+                  {"application/json", "{\"statusCode\": 200}"}
+                  },
+            IntegrationResponses = new IntegrationResponse[]{
 
                     new IntegrationResponse(){
                          StatusCode =  "200",
                          ResponseTemplates = new Dictionary<string,string>(){
-                              {"application/json", "{\"done\": true}"}
+                              {"application/json", $"{{\"version\": {awsApplication.Version}}}"}
                          }
                     }
                 }
-            }
-        });
-
-        var method = topic.AddMethod("GET", awsIntegration, new MethodOptions()
+        }), new MethodOptions()
         {
             MethodResponses = new MethodResponse[]{
-                new MethodResponse(){
+                new MethodResponse{
                     StatusCode = "200"
                 }
             }
         });
+        awsApplication.SetCfOutput(this, "apigwbase", api.Url);
+        return api;
     }
+    public Role GetApiGatewayRole(AWSAppProject awsApplication, string namesuffix) =>
+      awsApplication.GetAPIGatewayRole(this, namesuffix)
+      .AddCodeBuildReportGroupPolicy(awsApplication)
+      .AddCloudWatchLogsPolicy(awsApplication)
+      .AddCloudWatchLogGroupPolicy(awsApplication)
+      .AddDynamoDBPolicy(awsApplication)
+      .AddSnsPolicy(awsApplication)
+      .AddSqsPolicy(awsApplication)
+      .AddS3Policy(awsApplication)
+      .AddSsmPolicy(awsApplication);
+    public Role GetLambdaRole(AWSAppProject awsApplication, string namesuffix) =>
+      awsApplication.GetLambdaRole(this, namesuffix)
+      .AddCodeBuildReportGroupPolicy(awsApplication)
+      .AddCloudWatchLogsPolicy(awsApplication)
+      .AddCloudWatchLogGroupPolicy(awsApplication)
+      .AddDynamoDBPolicy(awsApplication)
+      .AddSnsPolicy(awsApplication)
+      .AddSqsPolicy(awsApplication)
+      .AddS3Policy(awsApplication)
+      .AddSsmPolicy(awsApplication);
 }
 

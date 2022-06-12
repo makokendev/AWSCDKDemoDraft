@@ -1,6 +1,7 @@
 ﻿using Amazon.CDK;
 using CodingChallenge.Cdk.Extensions;
 using CodingChallenge.Cdk.Stacks;
+using CodingChallenge.Infrastructure;
 using System;
 
 namespace CodingChallenge.Cdk;
@@ -12,8 +13,9 @@ public sealed class Program
         var app = new App();
         try
         {
-            var cdkApp = app.GetCdkApplication();
-            Console.WriteLine("subsystem is..." + cdkApp.Subsystem);
+            var awsApplication = app.GetAWSApplication();
+            awsApplication.AwsRegion = app.Region;
+            Console.WriteLine("subsystem is..." + awsApplication.Subsystem);
 
             Amazon.CDK.Environment makeEnv(string account = null, string region = null)
             {
@@ -23,25 +25,28 @@ public sealed class Program
                     Region = region ?? System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION")
                 };
             }
-            var infraStack = new InfraStack(app, cdkApp.GetDefaultInfraStackName(), new StackProps() { Env = makeEnv() }, cdkApp);
-            var mainStack = new MainStack(app, cdkApp.GetDefaultMainStackName(), new StackProps() { Env = makeEnv() }, cdkApp);
-            SetStackTags(cdkApp, mainStack);
+            var infraStack = new InfraStack(app, awsApplication.GetDefaultInfraStackName(), new StackProps() { Env = makeEnv() }, awsApplication);
+            var mainStack = new MainStack(app, awsApplication.GetDefaultMainStackName(), new StackProps() { Env = makeEnv() }, awsApplication);
+            var databaseStack = new DatabaseStack(app, awsApplication.GetDefaultDatabaseStackName(), new StackProps() { Env = makeEnv() }, awsApplication);
+            SetStackTags(awsApplication, mainStack);
+            SetStackTags(awsApplication, infraStack);
+            SetStackTags(awsApplication, databaseStack);
             app.Synth();
         }
         catch (Exception ex)
         {
-            System.Console.WriteLine($"{ex.Message} -- {ex.StackTrace}");
+            System.Console.WriteLine($"CDK EXCEPTION --- {ex.Message} -- {ex.StackTrace}");
             throw;
         }
     }
 
-    private static void SetStackTags<T>(AwsAppProject cdkApp, T stack)
+    private static void SetStackTags<T>(AWSAppProject awsApplication, T stack)
     where T : Stack
     {
-        Tags.Of(stack).Add(nameof(cdkApp.Environment), cdkApp.Environment);
-        Tags.Of(stack).Add(nameof(cdkApp.Version), cdkApp.Version);
-        Tags.Of(stack).Add(nameof(cdkApp.Platform), cdkApp.Platform);
-        Tags.Of(stack).Add(nameof(cdkApp.System), cdkApp.System);
-        Tags.Of(stack).Add(nameof(cdkApp.Subsystem), cdkApp.Subsystem);
+        Tags.Of(stack).Add(nameof(awsApplication.Environment), awsApplication.Environment);
+        Tags.Of(stack).Add(nameof(awsApplication.Version), awsApplication.Version);
+        Tags.Of(stack).Add(nameof(awsApplication.Platform), awsApplication.Platform);
+        Tags.Of(stack).Add(nameof(awsApplication.System), awsApplication.System);
+        Tags.Of(stack).Add(nameof(awsApplication.Subsystem), awsApplication.Subsystem);
     }
 }

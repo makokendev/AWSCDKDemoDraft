@@ -1,25 +1,43 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.ECR;
+using Amazon.CDK.AWS.S3;
 using Amazon.CDK.AWS.SNS;
 using CodingChallenge.Cdk.Extensions;
+using CodingChallenge.Infrastructure;
+using CodingChallenge.Infrastructure.Extensions;
 
 namespace CodingChallenge.Cdk.Stacks;
 
 public sealed class InfraStack : Stack
 {
-    public const string EcrRepoSuffix = "ecrrepo";
-    public const string eventTopicSuffix = "eventTopic";
-    public const string dynamoDBTableSuffix = nameof(Infrastructure.Persistence.NFTRecord.NFTRecordDataModel);
+    public const string EcrRepoSuffix = "processor-lambda";
+    public const string eventTopicSuffix = "eventtopic";
+    // public const string dynamoDBTableSuffix = nameof(Infrastructure.Persistence.NFTRecord.NFTRecordDataModel);
     public const string arnSuffixValue = "arn";
-    public InfraStack(Construct parent, string id, IStackProps props, AwsAppProject awsApplication) : base(parent, id, props)
+
+    public InfraStack(Construct parent, string id, IStackProps props, AWSAppProject awsApplication) : base(parent, id, props)
     {
-        SetupTableForNFTRecord(awsApplication);
         CreateECRRepoForEventProcessor(awsApplication);
         CreateEventTopic(awsApplication);
+        SetupDocumentationS3Bucket(awsApplication);
     }
 
-    private void CreateEventTopic(AwsAppProject awsApplication)
+    //public static string GetDocBucketName(AwsAppProject awsApplication) => awsApplication.GetResourceName("docbucket");
+    public static string GetDocBucketName(AWSAppProject awsApplication) => $"awscdkdemo.{awsApplication.DomainName}";
+    private void SetupDocumentationS3Bucket(AWSAppProject awsApplication)
+    {
+        var bucketName = GetDocBucketName(awsApplication);
+        var documentationBucket = new Bucket(this, bucketName, new BucketProps
+        {
+            BucketName = bucketName,
+            PublicReadAccess = true,
+            WebsiteIndexDocument = "index.html"
+            
+        });
+         awsApplication.SetCfOutput(this, $"docbucket-websiteurl", documentationBucket.BucketWebsiteUrl);
+    }
+
+    private void CreateEventTopic(AWSAppProject awsApplication)
     {
 
         var topicName = awsApplication.GetResourceName(eventTopicSuffix);
@@ -33,7 +51,7 @@ public sealed class InfraStack : Stack
         awsApplication.SetCfOutput(this, $"{eventTopicSuffix}-{arnSuffixValue}", eventTopic.TopicArn);
     }
 
-    public void CreateECRRepoForEventProcessor(AwsAppProject awsApplication)
+    public void CreateECRRepoForEventProcessor(AWSAppProject awsApplication)
     {
         var repoName = awsApplication.GetResourceName(EcrRepoSuffix);
         var eventProcessorECRRepo = new Repository(this, repoName, new RepositoryProps()
@@ -42,29 +60,6 @@ public sealed class InfraStack : Stack
         });
         awsApplication.SetCfOutput(this, $"{EcrRepoSuffix}-{arnSuffixValue}", eventProcessorECRRepo.RepositoryArn);
         awsApplication.SetCfOutput(this, $"{EcrRepoSuffix}-name", eventProcessorECRRepo.RepositoryName);
-    }
-
-
-    public void SetupTableForNFTRecord(AwsAppProject awsApplication)
-    {
-        string dynamoDBTableFullName = awsApplication.GetResourceName(dynamoDBTableSuffix);
-        var dynamoDbTableProps = new TableProps()
-        {
-            TableName = dynamoDBTableFullName
-        };
-        dynamoDbTableProps.PartitionKey = new Amazon.CDK.AWS.DynamoDB.Attribute()
-        {
-            Type = Amazon.CDK.AWS.DynamoDB.AttributeType.STRING,
-            Name = nameof(Infrastructure.Persistence.NFTRecord.NFTRecordDataModel.TokenId)
-        };
-
-        dynamoDbTableProps.SortKey = new Amazon.CDK.AWS.DynamoDB.Attribute()
-        {
-            Type = Amazon.CDK.AWS.DynamoDB.AttributeType.STRING,
-            Name = nameof(Infrastructure.Persistence.NFTRecord.NFTRecordDataModel.WalletId)
-        };
-        var table = new Table(this, dynamoDBTableFullName, dynamoDbTableProps);
-        awsApplication.SetCfOutput(this, $"{dynamoDBTableSuffix}-{arnSuffixValue}", table.TableArn);
     }
 }
 

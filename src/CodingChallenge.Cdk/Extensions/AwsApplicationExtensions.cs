@@ -2,25 +2,31 @@ using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.SQS;
+using CodingChallenge.Infrastructure;
+using CodingChallenge.Infrastructure.Extensions;
 
 namespace CodingChallenge.Cdk.Extensions;
 
 public static class AwsApplicationExtensions
 {
 
-    public static string GetDefaultMainStackName(this AwsAppProject cdkApp)
+    public static string GetDefaultMainStackName(this AWSAppProject awsApplication)
     {
-        return cdkApp.GetResourceName(Constants.MAIN_STACK_NAME_SUFFIX);
+        return awsApplication.GetResourceName(Constants.MAIN_STACK_NAME_SUFFIX);
     }
-    public static string GetDefaultInfraStackName(this AwsAppProject cdkApp)
+    public static string GetDefaultInfraStackName(this AWSAppProject awsApplication)
     {
-        return cdkApp.GetResourceName(Constants.INFRA_STACK_NAME_SUFFIX);
+        return awsApplication.GetResourceName(Constants.INFRA_STACK_NAME_SUFFIX);
+    }
+    public static string GetDefaultDatabaseStackName(this AWSAppProject awsApplication)
+    {
+        return awsApplication.GetResourceName(Constants.DATABASE_STACK_NAME_SUFFIX);
     }
 
-    public static Queue GetSqsQueue<T>(this AwsAppProject cdkApp, T stack, string resourceSuffix, bool isFifo = false, IDeadLetterQueue deadLetterQueue = null)
+    public static Queue GetSqsQueue<T>(this AWSAppProject awsApplication, T stack, string resourceSuffix, bool isFifo = false, IDeadLetterQueue deadLetterQueue = null)
        where T : Stack
     {
-        string resourceName = cdkApp.GetResourceName(resourceSuffix);
+        string resourceName = awsApplication.GetResourceName(resourceSuffix);
         if (isFifo)
         {
             resourceName += ".fifo";
@@ -41,10 +47,10 @@ public static class AwsApplicationExtensions
         var resource = new Queue(stack, resourceName, props);
         return resource;
     }
-    public static Role GetLambdaRole<T>(this AwsAppProject cdkApp, T stack, string resourceSuffix, bool isGlobal = false)
+    public static Role GetLambdaRole<T>(this AWSAppProject awsApplication, T stack, string resourceSuffix, bool isGlobal = false)
        where T : Stack
     {
-        string resourceName = cdkApp.GetResourceName(resourceSuffix);
+        string resourceName = awsApplication.GetResourceName(resourceSuffix);
         var role = new Role(stack, resourceName, new RoleProps()
         {
             RoleName = resourceName,
@@ -54,10 +60,10 @@ public static class AwsApplicationExtensions
     }
 
 
-    public static Role GetAPIGatewayRole<T>(this AwsAppProject cdkApp, T stack, string resourceSuffix, bool isGlobal = false)
+    public static Role GetAPIGatewayRole<T>(this AWSAppProject awsApplication, T stack, string resourceSuffix, bool isGlobal = false)
        where T : Stack
     {
-        string resourceName = cdkApp.GetResourceName(resourceSuffix);
+        string resourceName = awsApplication.GetResourceName(resourceSuffix);
         var role = new Role(stack, resourceName, new RoleProps()
         {
             RoleName = resourceName,
@@ -65,19 +71,9 @@ public static class AwsApplicationExtensions
         });
         return role;
     }
-    public static string Prefix(this AwsAppProject app, string seperator = "-")
-    {
-        return $"{app.Environment}{seperator}{app.Platform}{seperator}{app.System}{seperator}{app.Subsystem}";
-    }
-    public static string GetResourceName(this AwsAppProject cdkApp, string resourceSuffix)
-    {
-        string resourceName;
+   
 
-        resourceName = $"{cdkApp.Prefix()}-{resourceSuffix}";
-        return resourceName;
-    }
-
-    public static string SetCfOutput(this AwsAppProject awsApp, Stack stack, string exportSuffix, string exportValue)
+    public static string SetCfOutput(this AWSAppProject awsApp, Stack stack, string exportSuffix, string exportValue)
     {
         var exportName = awsApp.ConstructCfExportName(exportSuffix);
         var cfOutputBaseMappindgProps = new CfnOutputProps()
@@ -88,31 +84,32 @@ public static class AwsApplicationExtensions
         _ = new CfnOutput(stack, exportName, cfOutputBaseMappindgProps);
         return exportName;
     }
-    public static string GetCfOutput(this AwsAppProject awsApp, string exportSuffix)
+    public static string GetCfOutput(this AWSAppProject awsApp, string exportSuffix)
     {
         var exportName = awsApp.ConstructCfExportName(exportSuffix);
         return Fn.ImportValue(exportName);
     }
 
-    public static string ConstructCfExportName(this AwsAppProject awsApp, string exportSuffix)
+    public static string ConstructCfExportName(this AWSAppProject awsApp, string exportSuffix)
     {
         return awsApp.GetResourceName(exportSuffix);
     }
-    public static string SetApiGatewayCNameOutputValue(this AwsAppProject awsApp, Stack stack, string outputValue)
+    public static string SetApiGatewayCNameOutputValue(this AWSAppProject awsApp, Stack stack, string outputValue)
     {
         return awsApp.SetCfOutput(stack, Constants.REST_API_CNAME, outputValue);
     }
 
 
 
-    public static Dictionary<string, string> GetEnvironmentVariables(this AwsAppProject cdkApp, string prefix)
+    public static Dictionary<string, string> GetEnvironmentVariables(this AWSAppProject awsApplication, string prefix)
     {
         return new Dictionary<string, string>{
-                    { prefix + "Environment", cdkApp.Environment},
-                    { prefix + "Platform", cdkApp.Platform},
-                    { prefix + "System", cdkApp.System},
-                    { prefix + "Subsystem",  cdkApp.Subsystem},
-                    { prefix + "Version", cdkApp.Version},
+                    { prefix + "Environment", awsApplication.Environment},
+                    { prefix + "Platform", awsApplication.Platform},
+                    { prefix + "System", awsApplication.System},
+                    { prefix + "Subsystem",  awsApplication.Subsystem},
+                    { prefix + "Version", awsApplication.Version},
+                    { prefix + "AwsRegion", awsApplication.AwsRegion}, 
                 };
     }
 }
