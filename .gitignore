@@ -33,3 +33,9 @@ Obj/
 build/tools
 publish
 artifacts
+
+# docs
+*.drawio.bkp
+*.drawio.dtmp
+*.drawio.html
+README.html
