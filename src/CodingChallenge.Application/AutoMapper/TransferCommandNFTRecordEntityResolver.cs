@@ -6,11 +6,5 @@ namespace CodingChallenge.Application.AutoMapper;
 
 public class TransferCommandNFTRecordEntityResolver : IValueResolver<TransferCommand, NFTRecordEntity, NFTWallet>
 {
-    public NFTWallet Resolve(TransferCommand source, NFTRecordEntity destination, NFTWallet member, ResolutionContext context)
-    {
-        return new NFTWallet()
-        {
-            WalletId = source.From
-        };
-    }
+    public NFTWallet Resolve(TransferCommand source, NFTRecordEntity destination, NFTWallet member, ResolutionContext context) => new NFTWallet(source.From);
 }

@@ -37,7 +37,7 @@ public class MintCommandHandler : IRequestHandler<MintCommand, MintCommandRespon
             var entity = _mapper.Map<MintCommand, NFTRecordEntity>(request);
             entity.Created = DateTime.Now;
             entity.CreatedBy = "CurrentUserId";
-            _logger.LogDebug($"handling.... MintCommandHandler... id:{entity.TokenId} -- sortkey:{entity.TokenId}");
+            _logger.LogDebug($"handling.... MintCommandHandler... id:{entity.TokenId} -- sortkey:{entity.Wallet}");
             await _repo.MintAsync(entity);
 
         }

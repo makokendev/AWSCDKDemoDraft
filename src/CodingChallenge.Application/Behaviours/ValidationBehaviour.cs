@@ -20,6 +20,7 @@ public class ValidationBehaviour<TRequest, TResponse> : IPipelineBehavior<TReque
 
     public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)
     {
+
         if (_validators.Any())
         {
             var context = new ValidationContext<TRequest>(request);
