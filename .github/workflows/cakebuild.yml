@@ -6,7 +6,8 @@ on:
   pull_request:
     branches: [ master ]
 env:
-  APPLICATION__Environment: glo
+  APPLICATION__Environment: dev
+  APPLICATION__DomainName: makokendev.com
   AWS_ACCOUNT_NUMBER: 476631482508
   AWS_REGION: us-east-1
 
@@ -52,5 +53,5 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Cake Build
-      run: ./build/build.sh
+      run: ./build/build.sh --deploy
    
