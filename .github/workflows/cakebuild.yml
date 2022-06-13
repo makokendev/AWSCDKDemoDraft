@@ -53,5 +53,5 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Cake Build
-      run: ./build/build.sh --deploy
+      run: ./build/build.sh --target=deploy
    
