@@ -52,6 +52,10 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 6.0.x
-    - name: Cake Build
+    - name: Cake Build Infra
+      run: ./build/build.sh --target=infradeploy
+    - name: Cake Build Database
+      run: ./build/build.sh --target=databasedeploy
+    - name: Cake Build Application Deploy
       run: ./build/build.sh --target=deploy
    
